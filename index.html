@@ -49,6 +49,11 @@
     cursor: pointer;
     margin: 8px;
   }
+  .secundario {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff7d6;
+    border: 2px solid #ffe97a;
+  }
   .chip {
     font-size: 1.1rem;
     padding: 10px 18px;
@@ -60,18 +65,20 @@
   }
   #subir { display: none; }
   .sticker {
-    max-width: 220px;
-    max-height: 220px;
+    max-width: 200px;
+    max-height: 200px;
     border-radius: 20px;
     border: 5px solid #fff;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
     animation: moverse 3s ease-in-out infinite;
-    margin: 15px;
+    margin: 10px;
   }
   @keyframes moverse {
     0%, 100% { transform: rotate(-2deg) translateY(0); }
     50% { transform: rotate(2deg) translateY(-12px); }
   }
+  .pagina { margin: 15px 0; }
+  .pagina p { margin: 5px; }
   input[type=text] {
     font-size: 1.2rem;
     padding: 12px 18px;
@@ -92,7 +99,7 @@
 </div>
 
 <div id="crear" class="pantalla oculta">
-  <h1>¿Qué dibujaste?</h1>
+  <h1 id="pregunta-dibujo">¿Qué dibujaste?</h1>
   <p>Si no sabes qué dibujar, prueba con:</p>
   <div>
     <span class="chip">un sol</span>
@@ -102,23 +109,22 @@
   <label class="boton" for="subir">Subir mi dibujo</label>
   <input id="subir" type="file" accept="image/*" onchange="mostrarDibujo(event)">
   <div id="escena"></div>
-  <div id="nombre-zona" class="oculta">
-    <p>¿Quién es? ¿Cómo se llama?</p>
-    <input id="nombre" type="text" placeholder="Escribe su nombre">
-    <br>
-    <button onclick="empezarCuento()">Así empieza mi cuento</button>
-  </div>
+  <p id="pregunta-texto">¿Quién es? ¿Cómo se llama?</p>
+  <input id="frase" type="text" placeholder="Escríbelo aquí">
+  <br>
+  <button id="boton-agregar" onclick="agregarPagina()">Así empieza mi cuento</button>
 </div>
 
 <div id="cuento" class="pantalla oculta">
-  <p>Había una vez...</p>
-  <div id="escena-cuento"></div>
-  <h1 id="titulo-cuento"></h1>
-  <p>Y este es solo el principio ✨</p>
-  <button onclick="location.reload()">Crear otro</button>
+  <h1>Mi cuento</h1>
+  <div id="paginas"></div>
+  <button onclick="leerCuento()">🔊 Luci, léelo</button>
+  <button class="secundario" onclick="otraPagina()">¿Y luego qué pasó?</button>
+  <button class="secundario" onclick="location.reload()">Crear otro cuento</button>
 </div>
-<script>
-function hablar(texto) {
+
+<script
+  function hablar(texto) {
   var voz = new SpeechSynthesisUtterance(texto);
   voz.lang = 'es-ES';
   voz.rate = 0.95;
@@ -136,27 +142,69 @@ function mostrarDibujo(evento) {
   if (!archivo) return;
   var lector = new FileReader();
   lector.onload = function(e) {
+    dibujoActual = e.target.result;
     var img = document.createElement('img');
-    img.src = e.target.result;
+    img.src = dibujoActual;
     img.className = 'sticker';
     document.getElementById('escena').innerHTML = '';
     document.getElementById('escena').appendChild(img);
-    document.getElementById('nombre-zona').classList.remove('oculta');
-    hablar('¡Qué dibujo tan bonito! ¿Quién es? ¿Cómo se llama?');
+    hablar('¡Qué dibujo tan bonito!');
   };
   lector.readAsDataURL(archivo);
 }
-function empezarCuento() {
-  var nombre = document.getElementById('nombre').value || 'un amigo misterioso';
-  var sticker = document.querySelector('#escena img');
-  document.getElementById('escena-cuento').innerHTML = '';
-  document.getElementById('escena-cuento').appendChild(sticker);
-  document.getElementById('titulo-cuento').textContent = nombre;
+function agregarPagina() {
+  var frase = document.getElementById('frase').value;
+  if (paginas.length === 0) {
+    frase = 'Había una vez, ' + (frase || 'un amigo misterioso') + '.';
+  } else if (!frase) {
+    frase = 'Y la aventura siguió.';
+  }
+  paginas.push({ img: dibujoActual, texto: frase });
+  dibujoActual = null;
+  mostrarCuento();
+}
+function mostrarCuento() {
+  var zona = document.getElementById('paginas');
+  zona.innerHTML = '';
+  for (var i = 0; i < paginas.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'pagina';
+    if (paginas[i].img) {
+      var img = document.createElement('img');
+      img.src = paginas[i].img;
+      img.className = 'sticker';
+      div.appendChild(img);
+    }
+    var p = document.createElement('p');
+    p.textContent = paginas[i].texto;
+    div.appendChild(p);
+    zona.appendChild(div);
+  }
   document.getElementById('crear').classList.add('oculta');
   document.getElementById('cuento').classList.remove('oculta');
-  hablar('Había una vez, ' + nombre + '. Y este es solo el principio.');
+  window.scrollTo(0, 0);
+}
+function otraPagina() {
+  document.getElementById('pregunta-dibujo').textContent = '¿Y luego qué pasó?';
+  document.getElementById('pregunta-texto').textContent = 'Cuéntalo en una frase';
+  document.getElementById('boton-agregar').textContent = 'Agregar página';
+  document.getElementById('frase').value = '';
+  document.getElementById('escena').innerHTML = '';
+  document.getElementById('cuento').classList.add('oculta');
+  document.getElementById('crear').classList.remove('oculta');
+  hablar('¿Y luego qué pasó? Dibuja lo que sigue.');
+}
+function leerCuento() {
+  var todo = '';
+  for (var i = 0; i < paginas.length; i++) {
+    todo = todo + paginas[i].texto + ' ';
+  }
+  todo = todo + 'Y colorín colorado, este cuento se ha acabado.';
+  hablar(todo);
 }
 </script>
 
 </body>
 </html>
+var paginas = [];
+var dibujoActual = null;
