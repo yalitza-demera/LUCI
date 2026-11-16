@@ -123,8 +123,11 @@
   <button class="secundario" onclick="location.reload()">Crear otro cuento</button>
 </div>
 
-<script
-  function hablar(texto) {
+<script>
+var paginas = [];
+var dibujoActual = null;
+
+function hablar(texto) {
   var voz = new SpeechSynthesisUtterance(texto);
   voz.lang = 'es-ES';
   voz.rate = 0.95;
@@ -206,5 +209,3 @@ function leerCuento() {
 
 </body>
 </html>
-var paginas = [];
-var dibujoActual = null;
